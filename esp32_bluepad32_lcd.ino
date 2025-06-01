@@ -37,7 +37,7 @@
 
 #include <Arduino.h>
 #include <Bluepad32.h>
-#include <LibPrintf.h> // Only needed for debug
+// #include <LibPrintf.h> // Removed
 
 #include <Wire.h>                  // For I2C communication (LCD)
 #include <LiquidCrystal_I2C.h>     // For I2C LCD control
@@ -150,8 +150,7 @@ LiquidCrystal_I2C lcd(LCD_ADDR, LCD_COLS, LCD_ROWS);
 
 // --- Global Variables for Controller and RC Car State ---
 ControllerPtr myControllers[CONFIG_BLUEPAD32_MAX_DEVICES]; // Array to hold connected controller objects
-// static Bluepad32 BP32;                                  // Bluepad32 primary object - Removed to resolve conflict
-                                                           // Assuming BP32 is declared globally by the Bluepad32 library itself.
+                                                           // BP32 object is assumed to be globally declared by the Bluepad32 library.
 
 // Speed Mode Definitions
 enum SpeedMode { MODE_LOW, MODE_MEDIUM, MODE_HIGH }; // Enum for different speed levels
@@ -172,10 +171,10 @@ void onConnectedController(ControllerPtr ctl) {
     for (int i = 0; i < CONFIG_BLUEPAD32_MAX_DEVICES; i++) {
         if (myControllers[i] == nullptr) { // Find an empty slot for the new controller
             // ConsoleContextHolder ctx(*console); // Removed
-            printf("CALLBACK: Controller connected, index=%d\n", i);
+            Serial.printf("CALLBACK: Controller connected, index=%d\n", i);
             // You can get more controller properties here if needed:
             // GamepadProperties properties = ctl->getProperties();
-            // printf("Controller model: %s, VID=0x%04x, PID=0x04%x\n", ctl->getModelName(), properties.vendor_id, properties.product_id);
+            // Serial.printf("Controller model: %s, VID=0x%04x, PID=0x04%x\n", ctl->getModelName().c_str(), properties.vendor_id, properties.product_id);
 
             myControllers[i] = ctl; // Store the controller object
 
@@ -202,7 +201,7 @@ void onConnectedController(ControllerPtr ctl) {
     }
     if (!found) {
         // ConsoleContextHolder ctx(*console); // Removed
-        printf("CALLBACK: Controller connected, but no empty slot available.\n");
+        Serial.printf("CALLBACK: Controller connected, but no empty slot available.\n");
     }
 }
 
@@ -212,7 +211,7 @@ void onDisconnectedController(ControllerPtr ctl) {
     for (int i = 0; i < CONFIG_BLUEPAD32_MAX_DEVICES; i++) {
         if (myControllers[i] == ctl) { // Find the disconnected controller
             // ConsoleContextHolder ctx(*console); // Removed
-            printf("CALLBACK: Controller disconnected from index=%d\n", i);
+            Serial.printf("CALLBACK: Controller disconnected from index=%d\n", i);
             myControllers[i] = nullptr; // Remove from active controllers
 
             if (i == 0) { // Special handling if the first controller disconnected
@@ -240,7 +239,7 @@ void onDisconnectedController(ControllerPtr ctl) {
     }
     if (!found) {
         // ConsoleContextHolder ctx(*console); // Removed
-        printf("CALLBACK: Controller disconnected, but not found in myControllers array.\n");
+        Serial.printf("CALLBACK: Controller disconnected, but not found in myControllers array.\n");
     }
 }
 
@@ -285,31 +284,36 @@ void processGamepad(ControllerPtr ctl) {
 void setup() {
     // --- Serial Console Initialization ---
     // Enables serial output for debugging. Can be USB, Bluetooth, or Telnet.
+    // With LibPrintf removed, all printf will go to Serial if not specifically handled.
+    // The Console classes are now effectively bypassed for printf.
 #if defined(ENABLE_CONSOLE)
+    Serial.begin(115200); // Initialize USB Serial for all console types now
 #if defined(ENABLE_BT_CONSOLE)
     SerialBT.begin("ESP32-bluepad32"); // Bluetooth device name
-    console = new BTConsole();
-    printf_init(console);
-    printf("Bluetooth Serial Console enabled\n");
+    // console = new BTConsole(); // Console object no longer used for printf
+    // printf_init(console); // Removed
+    Serial.printf("Bluetooth Serial Console enabled (though printf is now USB Serial).\n");
+    // Note: To actually use SerialBT for these messages, each printf would need to be SerialBT.printf().
 #elif defined(ENABLE_TELNET_CONSOLE)
-    printf("Connecting to %s ", ssid);
+    Serial.printf("Connecting to %s ", ssid); // Changed to Serial.printf
     WiFi.begin(ssid, password);
     while (WiFi.status() != WL_CONNECTED) {
         delay(500);
-        printf(".");
+        Serial.printf("."); // Changed to Serial.printf
     }
-    printf("\nWiFi connected\n");
-    printf("IP address: %s\n", WiFi.localIP().toString().c_str());
+    Serial.printf("\nWiFi connected\n"); // Changed to Serial.printf
+    Serial.printf("IP address: %s\n", WiFi.localIP().toString().c_str()); // Changed to Serial.printf
     telnetServer.begin();
     telnetServer.setNoDelay(true);
-    console = new TelnetConsole();
-    printf_init(console);
-    printf("Telnet Console enabled. Connect to IP: %s\n", WiFi.localIP().toString().c_str());
+    // console = new TelnetConsole(); // Console object no longer used for printf
+    // printf_init(console); // Removed
+    Serial.printf("Telnet Console enabled. Connect to IP: %s (though printf is now USB Serial).\n", WiFi.localIP().toString().c_str());
+    // Note: To actually use Telnet for these messages, a custom logging function writing to serverClient would be needed.
 #else // Default to UART console
-    Serial.begin(115200); // Initialize USB Serial
-    console = new SerialConsole();
-    printf_init(console); // Initialize printf() to use the console
-    printf("UART Serial Console enabled\n");
+    // Serial.begin(115200); // Already called above if ENABLE_CONSOLE
+    // console = new SerialConsole(); // Console object no longer used for printf
+    // printf_init(console); // Initialize printf() to use the console - Removed
+    Serial.printf("UART Serial Console enabled\n");
 #endif
 #else // Console disabled
     Serial.begin(115200); // Still init Serial for basic Arduino Serial.println
@@ -340,7 +344,7 @@ void setup() {
 
     // Ensure motors are stopped at boot
     stopMotors();
-    printf("Motors stopped at boot.\n");
+    Serial.printf("Motors stopped at boot.\n");
 
     // --- Bluepad32 Initialization ---
     // Setup Bluepad32 callbacks for controller connection events
@@ -351,9 +355,9 @@ void setup() {
 
     // Start Bluepad32 (on Core 0 or 1, depending on config)
 #ifdef UNI_BLUEPAD32_DUAL_CORE
-    printf("Bluepad32 running on Core 1 (Dual Core mode).\n");
+    Serial.printf("Bluepad32 running on Core 1 (Dual Core mode).\n");
 #else
-    printf("Bluepad32 running on Core 0 (Single Core mode).\n");
+    Serial.printf("Bluepad32 running on Core 0 (Single Core mode).\n");
 #endif
     // BP32.begin(); // Start Bluepad32 task - Removed as per user request to resolve "no member named 'begin'"
                      // Bluepad32 is often initialized by its constructor or setup() might handle it.
@@ -362,9 +366,9 @@ void setup() {
 #ifdef ENABLE_OTA_SUPPORT
     ArduinoOTA.setHostname("esp32-bluepad32-rc-car"); // Set a unique hostname
     ArduinoOTA.begin();
-    printf("OTA updates enabled. Hostname: %s\n", ArduinoOTA.getHostname().c_str());
+    Serial.printf("OTA updates enabled. Hostname: %s\n", ArduinoOTA.getHostname().c_str());
 #endif
-    printf("Setup complete.\n");
+    Serial.printf("Setup complete.\n");
 }
 
 
@@ -380,7 +384,7 @@ void loop() {
         serverClient = telnetServer.available();
         if (serverClient && serverClient.connected()) {
             serverClient.write("\033[2J"); // Clear telnet screen
-            printf("Telnet client connected.\n");
+            Serial.printf("Telnet client connected.\n"); // Changed to Serial.printf
         }
     }
 #endif
@@ -415,7 +419,7 @@ void loop() {
         unsigned int current_buttons = myControllers[0]->buttons();
         if ((current_buttons & MODE_SWITCH_BUTTON_MASK) && !(prev_buttons_for_mode_switch & MODE_SWITCH_BUTTON_MASK)) {
             currentSpeedMode = (SpeedMode)((currentSpeedMode + 1) % 3); // Cycle: LOW -> MEDIUM -> HIGH -> LOW
-            printf("Speed mode changed to: %d\n", currentSpeedMode);
+            Serial.printf("Speed mode changed to: %d\n", currentSpeedMode);
 
             // Briefly display new mode on LCD Line 1 (will be overwritten by timed LCD update)
             char lcd_buffer_mode[LCD_COLS + 1];
