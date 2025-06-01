@@ -38,7 +38,6 @@
 #include <Arduino.h>
 #include <Bluepad32.h>
 #include <LibPrintf.h> // Only needed for debug
-#include <UniPrintf.h> // Only needed for a more comprehensive printf flavor
 
 #include <Wire.h>                  // For I2C communication (LCD)
 #include <LiquidCrystal_I2C.h>     // For I2C LCD control
