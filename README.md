@@ -35,7 +35,7 @@ Ensure all connections are secure. It's recommended to power the motors from a s
 | Component         | ESP32-S3 Pin | Macro Name in Code | Description                      |
 |-------------------|--------------|--------------------|----------------------------------|
 | LCD I2C SDA       | GPIO 21      | `SDA_PIN`          | I2C Data Line                    |
-| LCD I2C SCL       | GPIO 22      | `SCL_PIN`          | I2C Clock Line                   |
+| LCD I2C SCL       | GPIO 20      | `SCL_PIN`          | I2C Clock Line                   |
 | Motor A - Speed   | GPIO 10      | `MA_SPEED_PIN`     | PWM signal for Motor A speed     |
 | Motor A - Direction | GPIO 11      | `MA_DIR_PIN`       | Direction control for Motor A    |
 | Motor B - Speed   | GPIO 12      | `MB_SPEED_PIN`     | PWM signal for Motor B speed     |
@@ -137,7 +137,7 @@ The onboard NeoPixel LED indicates the system status:
 
 - **LCD Not Displaying or Showing Garbled Text:**
     - **No Display:**
-        - Double-check the I2C wiring: SDA (GPIO 21, defined as `SDA_PIN`) and SCL (GPIO 22, defined as `SCL_PIN`) to the LCD.
+        - Double-check the I2C wiring: SDA (GPIO 21, defined as `SDA_PIN`) and SCL (GPIO 20, defined as `SCL_PIN`) to the LCD.
         - Ensure the LCD has power and ground connected.
         - Verify the I2C address of your LCD module. The code uses `0x27` (defined as `LCD_ADDR`). If your module has a different address, you'll need to change `LCD_ADDR` in the `.ino` file. You can use an I2C scanner sketch to find the address.
     - **Garbled Text:**

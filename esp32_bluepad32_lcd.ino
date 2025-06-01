@@ -9,7 +9,7 @@
 
 // Pins for LCD I2C. These are the "official" ESP32 I2C pins.
 #define SDA_PIN 21
-#define SCL_PIN 22
+#define SCL_PIN 20 // Changed from 22 to 20
 
 #define LCD_ADDR 0x27
 #define LCD_COLS 16
