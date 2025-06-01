@@ -150,7 +150,7 @@ LiquidCrystal_I2C lcd(LCD_ADDR, LCD_COLS, LCD_ROWS);
 
 // --- Global Variables for Controller and RC Car State ---
 ControllerPtr myControllers[CONFIG_BLUEPAD32_MAX_DEVICES]; // Array to hold connected controller objects
-static Bluepad32BP32 BP32;                                 // Bluepad32 primary object
+static Bluepad32 BP32;                                     // Bluepad32 primary object
 
 // Speed Mode Definitions
 enum SpeedMode { MODE_LOW, MODE_MEDIUM, MODE_HIGH }; // Enum for different speed levels
@@ -159,9 +159,9 @@ const float speedFactors[] = {0.5f, 0.75f, 1.0f};    // Speed scaling factors fo
 unsigned int prev_buttons_for_mode_switch = 0;       // Previous button state for mode switch debouncing
 
 // Button mask for speed mode switching.
-// BP32_BUTTON_Y is typically the 'Y' button on Nintendo-style controllers or Triangle on PlayStation.
-// If BP32_BUTTON_Y is not defined by your Bluepad32 version or board, use its hex value e.g. 0x0008.
-const unsigned int MODE_SWITCH_BUTTON_MASK = BP32_BUTTON_Y;
+// BUTTON_Y is typically the 'Y' button on Nintendo-style controllers or Triangle on PlayStation.
+// It should be defined by the Bluepad32 library. If not, a raw hex value (e.g., 0x0008) can be used.
+const unsigned int MODE_SWITCH_BUTTON_MASK = BUTTON_Y;
 
 // --- Controller Connection Callbacks ---
 
@@ -170,7 +170,7 @@ void onConnectedController(ControllerPtr ctl) {
     bool found = false;
     for (int i = 0; i < CONFIG_BLUEPAD32_MAX_DEVICES; i++) {
         if (myControllers[i] == nullptr) { // Find an empty slot for the new controller
-            ConsoleContextHolder ctx(*console); // Ensure console output is synchronized
+            // ConsoleContextHolder ctx(*console); // Removed
             printf("CALLBACK: Controller connected, index=%d\n", i);
             // You can get more controller properties here if needed:
             // GamepadProperties properties = ctl->getProperties();
@@ -200,7 +200,7 @@ void onConnectedController(ControllerPtr ctl) {
         }
     }
     if (!found) {
-        ConsoleContextHolder ctx(*console);
+        // ConsoleContextHolder ctx(*console); // Removed
         printf("CALLBACK: Controller connected, but no empty slot available.\n");
     }
 }
@@ -210,7 +210,7 @@ void onDisconnectedController(ControllerPtr ctl) {
     bool found = false;
     for (int i = 0; i < CONFIG_BLUEPAD32_MAX_DEVICES; i++) {
         if (myControllers[i] == ctl) { // Find the disconnected controller
-            ConsoleContextHolder ctx(*console);
+            // ConsoleContextHolder ctx(*console); // Removed
             printf("CALLBACK: Controller disconnected from index=%d\n", i);
             myControllers[i] = nullptr; // Remove from active controllers
 
@@ -238,11 +238,12 @@ void onDisconnectedController(ControllerPtr ctl) {
         }
     }
     if (!found) {
-        ConsoleContextHolder ctx(*console);
+        // ConsoleContextHolder ctx(*console); // Removed
         printf("CALLBACK: Controller disconnected, but not found in myControllers array.\n");
     }
 }
 
+/*
 // processGamepad: Called periodically for each connected controller.
 // Currently used for detailed serial diagnostics of button and axis states.
 void processGamepad(ControllerPtr ctl) {
@@ -277,7 +278,7 @@ void processGamepad(ControllerPtr ctl) {
         }
     }
 }
-
+*/
 
 // --- Arduino Setup Function ---
 void setup() {
@@ -353,7 +354,8 @@ void setup() {
 #else
     printf("Bluepad32 running on Core 0 (Single Core mode).\n");
 #endif
-    BP32.begin(); // Start Bluepad32 task
+    // BP32.begin(); // Start Bluepad32 task - Removed as per user request to resolve "no member named 'begin'"
+                     // Bluepad32 is often initialized by its constructor or setup() might handle it.
 
     // --- OTA (Over-The-Air Updates) Initialization ---
 #ifdef ENABLE_OTA_SUPPORT
@@ -387,14 +389,14 @@ void loop() {
 
     // --- Process Input from All Connected Controllers (for diagnostics) ---
     // This loop calls processGamepad for each connected controller, which prints detailed info to Serial.
-    for (int i = 0; i < CONFIG_BLUEPAD32_MAX_DEVICES; i++) {
-        if (myControllers[i] && myControllers[i]->isConnected()) {
-            // processGamepad(myControllers[i]); // Uncomment for verbose diagnostics for ALL controllers
-        }
-    }
-     if (myControllers[0] && myControllers[0]->isConnected()) { // Only run diagnostics for controller 0 to reduce spam
-        // processGamepad(myControllers[0]);
-     }
+    // for (int i = 0; i < CONFIG_BLUEPAD32_MAX_DEVICES; i++) {
+    //     if (myControllers[i] && myControllers[i]->isConnected()) {
+    //         // processGamepad(myControllers[i]); // Uncomment for verbose diagnostics for ALL controllers
+    //     }
+    // }
+    //  if (myControllers[0] && myControllers[0]->isConnected()) { // Only run diagnostics for controller 0 to reduce spam
+    //     // processGamepad(myControllers[0]);
+    //  }
 
 
     // --- RC Car Control Logic (operates on myControllers[0]) ---
