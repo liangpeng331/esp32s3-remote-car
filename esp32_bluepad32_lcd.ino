@@ -427,10 +427,13 @@ void loop() {
     // Shared variables for motor PWM values, accessible by LCD update logic
     static int pwmLeft = 0;  // Use static to retain value if controller disconnects mid-loop for LCD
     static int pwmRight = 0; // Use static to retain value if controller disconnects mid-loop for LCD
+    // Motor direction flags, ensure they are scoped to be accessible by controlMotorA/B calls
+    bool forwardLeft = true;
+    bool forwardRight = true;
 
     if (myControllers[0] != nullptr && myControllers[0]->isConnected()) {
         // --- Speed Mode Switching (uses Y/Triangle button) ---
-        unsigned int current_buttons = myControllers[0]->buttons();
+        unsigned int current_buttons = myControllers[0]->buttons(); // Read buttons once for all logic this iteration
         if ((current_buttons & MODE_SWITCH_BUTTON_MASK) && !(prev_buttons_for_mode_switch & MODE_SWITCH_BUTTON_MASK)) {
             currentSpeedMode = (SpeedMode)((currentSpeedMode + 1) % 3); // Cycle: LOW -> MEDIUM -> HIGH -> LOW
             Serial.printf("Speed mode changed to: %d\n", currentSpeedMode);
@@ -445,52 +448,82 @@ void loop() {
         }
         prev_buttons_for_mode_switch = current_buttons; // Update previous button state for next iteration
 
-        // --- Joystick Input Processing ---
-        int stickY_raw = myControllers[0]->axisY(); // Left stick Y-axis for forward/backward
-        int stickX_raw = myControllers[0]->axisX(); // Left stick X-axis for turning
-
-        // Apply Dead Zone to ignore minor joystick drift
+        // --- Joystick Input Processing (Y-axis for throttle) ---
+        int stickY_raw = myControllers[0]->axisY();
         int stickY = (abs(stickY_raw) < JOYSTICK_DEAD_ZONE) ? 0 : stickY_raw;
-        int stickX = (abs(stickX_raw) < JOYSTICK_DEAD_ZONE) ? 0 : stickX_raw;
+
+        // For LCD Debug: Read X-axis as well, but it's not used for motor control here
+        int stickX_raw = myControllers[0]->axisX();
+        int stickX_for_debug = (abs(stickX_raw) < JOYSTICK_DEAD_ZONE) ? 0 : stickX_raw;
+
 
         // --- Logic for Temporary Input Display on LCD ---
         if (current_buttons != last_buttons_for_lcd_debug ||
-            stickX != last_axisX_for_lcd_debug ||
+            stickX_for_debug != last_axisX_for_lcd_debug || // Use the (dead-zoned) X value for debug trigger
             stickY != last_axisY_for_lcd_debug) {
 
             last_buttons_for_lcd_debug = current_buttons;
-            last_axisX_for_lcd_debug = stickX; // Store the post-deadzone value
-            last_axisY_for_lcd_debug = stickY; // Store the post-deadzone value
+            last_axisX_for_lcd_debug = stickX_for_debug;
+            last_axisY_for_lcd_debug = stickY;
             lcd_debug_display_start_time = millis();
         }
 
-        // --- Motor Speed Calculation (Tank Control) ---
-        float normalizedY = (float)stickY / JOYSTICK_MAX_VALUE; // Normalize to -1.0 to 1.0
-        float normalizedX = (float)stickX / JOYSTICK_MAX_VALUE; // Normalize to -1.0 to 1.0
+        // --- New Motor Control Logic (D-pad for Turning, Y-axis for Throttle) ---
+        bool isTurning = false; // Flag to indicate if a turn button is pressed
 
-        // Tank steering: Y for speed, X for direction differential
-        float motorLeftSpeedNormalized = normalizedY - normalizedX;
-        float motorRightSpeedNormalized = normalizedY + normalizedX;
+        // Base turning PWM speed, scaled by current speed mode.
+        int baseTurnPwm = 150;
+        int actualTurnPwm = (int)((float)baseTurnPwm * speedFactors[currentSpeedMode]);
+        actualTurnPwm = constrain(actualTurnPwm, 0, 255);
 
-        // Clamp normalized speeds to the range [-1.0, 1.0]
-        motorLeftSpeedNormalized = constrain(motorLeftSpeedNormalized, -1.0, 1.0);
-        motorRightSpeedNormalized = constrain(motorRightSpeedNormalized, -1.0, 1.0);
+        // D-Pad buttons are often: 0x0010 (Left), 0x0020 (Right), 0x0040 (Up), 0x0080 (Down)
+        // These values might vary based on the controller/Bluepad32 library version.
+        // Refer to Bluepad32 documentation or serial output from processGamepad (if re-enabled) for exact values.
+        const unsigned int DPAD_LEFT_MASK = 0x0010;  // Example, verify actual mask
+        const unsigned int DPAD_RIGHT_MASK = 0x0020; // Example, verify actual mask
 
-        // Map normalized speed to PWM range (0-255)
-        pwmLeft = (int)(abs(motorLeftSpeedNormalized) * 255);
-        pwmRight = (int)(abs(motorRightSpeedNormalized) * 255);
+        if ((current_buttons & DPAD_LEFT_MASK)) { // D-Pad Left for Turn Left (pivot)
+            pwmLeft = actualTurnPwm;
+            forwardLeft = false; // Motor A (Left) backward
+            pwmRight = actualTurnPwm;
+            forwardRight = true;  // Motor B (Right) forward
+            isTurning = true;
+        } else if ((current_buttons & DPAD_RIGHT_MASK)) { // D-Pad Right for Turn Right (pivot)
+            pwmLeft = actualTurnPwm;
+            forwardLeft = true;   // Motor A (Left) forward
+            pwmRight = actualTurnPwm;
+            forwardRight = false; // Motor B (Right) backward
+            isTurning = true;
+        }
 
-        // Apply current speed mode scaling factor
-        pwmLeft = (int)((float)pwmLeft * speedFactors[currentSpeedMode]);
-        pwmRight = (int)((float)pwmRight * speedFactors[currentSpeedMode]);
+        if (!isTurning) { // No turn buttons pressed - Forward/Backward Throttle Logic
+            // stickY is already dead-zoned
+            // Bluepad32 Y-axis: Negative is usually Up (forward), Positive is Down (backward)
+            float normalizedY = (float)stickY / JOYSTICK_MAX_VALUE;
 
-        // Final PWM value clamp (should not be necessary with current factors but good practice)
-        pwmLeft = constrain(pwmLeft, 0, 255);
-        pwmRight = constrain(pwmRight, 0, 255);
+            int speedVal = (int)(abs(normalizedY) * 255);
+            speedVal = constrain(speedVal, 0, 255);
 
-        // Determine motor direction
-        bool forwardLeft = motorLeftSpeedNormalized >= 0;
-        bool forwardRight = motorRightSpeedNormalized >= 0;
+            speedVal = (int)((float)speedVal * speedFactors[currentSpeedMode]);
+            speedVal = constrain(speedVal, 0, 255);
+
+            pwmLeft = speedVal;
+            pwmRight = speedVal;
+
+            if (stickY < 0) { // Negative stickY is forward (joystick pushed up)
+                forwardLeft = true;
+                forwardRight = true;
+            } else if (stickY > 0) { // Positive stickY is backward (joystick pulled down)
+                forwardLeft = false;
+                forwardRight = false;
+            } else { // stickY is 0 (or in dead zone)
+                // pwmLeft and pwmRight are already 0 if speedVal is 0.
+                // Set direction for consistency, though it doesn't matter at speed 0.
+                forwardLeft = true;
+                forwardRight = true;
+            }
+        }
+        // --- End of New Motor Control Logic ---
 
         // --- Actuate Motors ---
         controlMotorA(pwmLeft, forwardLeft);

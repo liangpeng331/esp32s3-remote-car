@@ -93,17 +93,22 @@ Ensure you have the ESP32 board support package installed in your Arduino IDE. I
 6.  **Forcing New Pairing:** If you want to pair a new controller or are having trouble, you can uncomment the `BP32.forgetBluetoothKeys();` line in the `setup()` function of the `esp32_bluepad32_lcd.ino` sketch, upload the code, run it once, then comment the line out again and re-upload. This clears stored Bluetooth keys.
 
 ### Controls
-- **Left Joystick (Vertical Y-axis):** Controls forward and backward movement of the car.
-    - Push Up: Move forward.
-    - Pull Down: Move backward.
-- **Left Joystick (Horizontal X-axis):** Controls turning.
-    - Push Left: Turn left (Motor A may slow down/reverse, Motor B may speed up).
-    - Push Right: Turn right (Motor B may slow down/reverse, Motor A may speed up).
-- **'Y' Button (North Button on Gamepad - e.g., Triangle on PS controller):** Cycles through speed modes:
-    - **LOW:** Reduced maximum speed (50%).
-    - **MEDIUM:** Default maximum speed (75%).
-    - **HIGH:** Full maximum speed (100%).
+- **Left Joystick (Vertical Y-axis):** Controls forward and backward speed of the car.
+    - Push Up (negative values, towards -512): Move forward. Speed is proportional to joystick deflection, scaled by the current Speed Mode.
+    - Pull Down (positive values, towards 512): Move backward. Speed is proportional to joystick deflection, scaled by the current Speed Mode.
+    - Center (or within dead zone): Motors stop.
+- **D-Pad Left (Button mask `0x0010`):** Makes the car pivot turn left.
+    - Pressing this button overrides forward/backward joystick input for turning.
+    - Turning speed is fixed but also scaled by the current Speed Mode.
+- **D-Pad Right (Button mask `0x0020`):** Makes the car pivot turn right.
+    - Pressing this button overrides forward/backward joystick input for turning.
+    - Turning speed is fixed but also scaled by the current Speed Mode.
+- **'Y' Button (North Button on Gamepad - e.g., Triangle on PS controller, typically `BUTTON_Y`):** Cycles through speed modes:
+    - **LOW:** Reduced maximum speed (50%) for both throttle and turning.
+    - **MEDIUM:** Default maximum speed (75%) for both throttle and turning.
+    - **HIGH:** Full maximum speed (100%) for both throttle and turning.
     - The LCD will briefly display the selected mode.
+- **Note:** The Left Joystick X-axis is no longer used for primary steering with this control scheme. It will still trigger the temporary LCD diagnostic display if moved.
 
 ### LCD Display
 The LCD provides real-time status:
