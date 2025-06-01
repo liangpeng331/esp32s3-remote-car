@@ -7,9 +7,9 @@
 // #define ENABLE_TELNET_CONSOLE // When defined, it will use Telnet Console instead of USB one.
 // #define ENABLE_OTA_SUPPORT // When defined, it will enable support for OTA updates.
 
-// Pins for LCD I2C. These are the "official" ESP32 I2C pins.
-#define SDA_PIN 21
-#define SCL_PIN 20 // Changed from 22 to 20
+// Pins for LCD I2C.
+#define SDA_PIN 8  // Changed from 21 to 8
+#define SCL_PIN 9  // Changed from 20 to 9
 
 #define LCD_ADDR 0x27
 #define LCD_COLS 16
@@ -163,6 +163,13 @@ unsigned int prev_buttons_for_mode_switch = 0;       // Previous button state fo
 // It should be defined by the Bluepad32 library. If not, a raw hex value (e.g., 0x0008) can be used.
 const unsigned int MODE_SWITCH_BUTTON_MASK = BUTTON_Y;
 
+// --- Global Variables for Temporary LCD Input Display ---
+static unsigned int last_buttons_for_lcd_debug = 0;
+static int last_axisX_for_lcd_debug = 0;
+static int last_axisY_for_lcd_debug = 0;
+static unsigned long lcd_debug_display_start_time = 0;
+const unsigned long LCD_DEBUG_DISPLAY_DURATION = 2000; // Display debug info for 2 seconds
+
 // --- Controller Connection Callbacks ---
 
 // onConnectedController: Called when a new controller connects.
@@ -181,6 +188,11 @@ void onConnectedController(ControllerPtr ctl) {
             if (i == 0) { // Special handling for the first controller (myControllers[0])
                 // Initialize button state for mode switching to prevent false trigger on first press
                 prev_buttons_for_mode_switch = ctl->buttons();
+                // Initialize LCD debug display variables
+                last_buttons_for_lcd_debug = ctl->buttons();
+                last_axisX_for_lcd_debug = 0; // Or ctl->axisX() if you want initial value
+                last_axisY_for_lcd_debug = 0; // Or ctl->axisY()
+                lcd_debug_display_start_time = 0; // Ensure debug display is not active on connect
             }
 
             // Update LCD
@@ -321,7 +333,9 @@ void setup() {
 #endif
 
     // --- Hardware Initialization ---
-    // LCD
+    // I2C and LCD
+    Serial.printf("Initializing I2C on SDA_PIN %d and SCL_PIN %d...\n", SDA_PIN, SCL_PIN);
+    Wire.begin(SDA_PIN, SCL_PIN); // Initialize I2C with specified pins
     lcd.init();        // Initialize the LCD
     lcd.backlight();   // Turn on the backlight
     lcd.clear();       // Clear any previous content
@@ -432,12 +446,23 @@ void loop() {
         prev_buttons_for_mode_switch = current_buttons; // Update previous button state for next iteration
 
         // --- Joystick Input Processing ---
-        int stickY = myControllers[0]->axisY(); // Left stick Y-axis for forward/backward
-        int stickX = myControllers[0]->axisX(); // Left stick X-axis for turning
+        int stickY_raw = myControllers[0]->axisY(); // Left stick Y-axis for forward/backward
+        int stickX_raw = myControllers[0]->axisX(); // Left stick X-axis for turning
 
         // Apply Dead Zone to ignore minor joystick drift
-        if (abs(stickY) < JOYSTICK_DEAD_ZONE) stickY = 0;
-        if (abs(stickX) < JOYSTICK_DEAD_ZONE) stickX = 0;
+        int stickY = (abs(stickY_raw) < JOYSTICK_DEAD_ZONE) ? 0 : stickY_raw;
+        int stickX = (abs(stickX_raw) < JOYSTICK_DEAD_ZONE) ? 0 : stickX_raw;
+
+        // --- Logic for Temporary Input Display on LCD ---
+        if (current_buttons != last_buttons_for_lcd_debug ||
+            stickX != last_axisX_for_lcd_debug ||
+            stickY != last_axisY_for_lcd_debug) {
+
+            last_buttons_for_lcd_debug = current_buttons;
+            last_axisX_for_lcd_debug = stickX; // Store the post-deadzone value
+            last_axisY_for_lcd_debug = stickY; // Store the post-deadzone value
+            lcd_debug_display_start_time = millis();
+        }
 
         // --- Motor Speed Calculation (Tank Control) ---
         float normalizedY = (float)stickY / JOYSTICK_MAX_VALUE; // Normalize to -1.0 to 1.0
@@ -490,26 +515,43 @@ void loop() {
         char lcd_buffer[LCD_COLS + 1]; // Buffer for formatting LCD lines
         int len;
 
-        // Display Controller Status/Name on Line 1
-        // This will overwrite the brief speed mode message if it was shown.
-        lcd.setCursor(0, 0);
-        if (myControllers[0] != nullptr && myControllers[0]->isConnected()) {
-            String name = myControllers[0]->getModelName().c_str();
-            // Format: "Ctrl: [Name]", ensure name is truncated to fit.
-            len = snprintf(lcd_buffer, LCD_COLS + 1, "Ctrl: %.*s", LCD_COLS - 6, name.c_str());
-        } else {
-            len = snprintf(lcd_buffer, LCD_COLS + 1, "Not Connected");
-        }
-        lcd.print(lcd_buffer);
-        for (int i = len; i < LCD_COLS; i++) lcd.print(" "); // Clear rest of the line
+        if (lcd_debug_display_start_time != 0 && millis() - lcd_debug_display_start_time < LCD_DEBUG_DISPLAY_DURATION) {
+            // --- Display Button/Axis Debug Info ---
+            lcd.setCursor(0, 0);
+            len = snprintf(lcd_buffer, LCD_COLS + 1, "Btns:0x%04X", last_buttons_for_lcd_debug);
+            lcd.print(lcd_buffer);
+            for (int i = len; i < LCD_COLS; i++) lcd.print(" "); // Clear rest of the line
 
-        // Display Motor Speeds on Line 2
-        lcd.setCursor(0, 1);
-        int speedPercentA = (int)((float)pwmLeft / 255.0 * 100.0);
-        int speedPercentB = (int)((float)pwmRight / 255.0 * 100.0);
-        // Format: "MA:XXX% MB:YYY%". %3d pads with spaces for numbers < 3 digits.
-        snprintf(lcd_buffer, LCD_COLS + 1, "MA:%3d%% MB:%3d%%", speedPercentA, speedPercentB);
-        lcd.print(lcd_buffer); // This format is exactly 16 chars, no need to clear.
+            lcd.setCursor(0, 1);
+            // Display the stored values that triggered the debug display
+            len = snprintf(lcd_buffer, LCD_COLS + 1, "LX:%-4d LY:%-4d", last_axisX_for_lcd_debug, last_axisY_for_lcd_debug);
+            // LX%4d LY%4d was the format from a previous step, using LX:%-4d LY:%-4d (15 chars) for better spacing.
+            lcd.print(lcd_buffer);
+            for (int i = len; i < LCD_COLS; i++) lcd.print(" "); // Clear rest of the line
+
+        } else {
+            if (lcd_debug_display_start_time != 0) { // Just finished displaying debug
+                 lcd_debug_display_start_time = 0; // Reset flag to prevent re-entering debug display immediately
+            }
+            // --- Display Normal Status (Controller Name / Motor Speeds) ---
+            lcd.setCursor(0, 0);
+            if (myControllers[0] != nullptr && myControllers[0]->isConnected()) {
+                // This part can overwrite the temporary speed mode message, which is acceptable.
+                String name = myControllers[0]->getModelName().c_str();
+                len = snprintf(lcd_buffer, LCD_COLS + 1, "Ctrl: %.*s", LCD_COLS - 6, name.c_str());
+            } else {
+                len = snprintf(lcd_buffer, LCD_COLS + 1, "Not Connected");
+            }
+            lcd.print(lcd_buffer);
+            for (int i = len; i < LCD_COLS; i++) lcd.print(" ");
+
+            lcd.setCursor(0, 1);
+            // pwmLeft and pwmRight are static in loop, so they hold their last calculated values.
+            int speedPercentA = (int)((float)pwmLeft / 255.0 * 100.0);
+            int speedPercentB = (int)((float)pwmRight / 255.0 * 100.0);
+            snprintf(lcd_buffer, LCD_COLS + 1, "MA:%3d%% MB:%3d%%", speedPercentA, speedPercentB);
+            lcd.print(lcd_buffer);
+        }
     }
 
     // Add a small delay to yield to other tasks (e.g., WiFi, Bluetooth stack)

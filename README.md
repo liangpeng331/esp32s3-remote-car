@@ -34,8 +34,8 @@ Ensure all connections are secure. It's recommended to power the motors from a s
 ### Pin Connections
 | Component         | ESP32-S3 Pin | Macro Name in Code | Description                      |
 |-------------------|--------------|--------------------|----------------------------------|
-| LCD I2C SDA       | GPIO 21      | `SDA_PIN`          | I2C Data Line                    |
-| LCD I2C SCL       | GPIO 20      | `SCL_PIN`          | I2C Clock Line                   |
+| LCD I2C SDA       | GPIO 8       | `SDA_PIN`          | I2C Data Line                    |
+| LCD I2C SCL       | GPIO 9       | `SCL_PIN`          | I2C Clock Line                   |
 | Motor A - Speed   | GPIO 10      | `MA_SPEED_PIN`     | PWM signal for Motor A speed     |
 | Motor A - Direction | GPIO 11      | `MA_DIR_PIN`       | Direction control for Motor A    |
 | Motor B - Speed   | GPIO 12      | `MB_SPEED_PIN`     | PWM signal for Motor B speed     |
@@ -107,11 +107,16 @@ Ensure you have the ESP32 board support package installed in your Arduino IDE. I
 
 ### LCD Display
 The LCD provides real-time status:
-- **Line 1:**
+- **Line 1 (Normal Operation):**
     - Shows controller connection status (e.g., "Ctrl: [Controller Name]", "Not Connected").
-    - Briefly displays the current speed mode when changed (e.g., "Speed: LOW").
-- **Line 2:**
+    - Briefly displays the current speed mode when changed (e.g., "Speed: LOW"), then reverts to controller status.
+- **Line 2 (Normal Operation):**
     - Displays the current speed percentage being applied to each motor: "MA: XX% MB: YY%".
+- **Temporary Input Display (Diagnostic):**
+    - When new button or joystick input is detected (after any dead-zone processing), the display will briefly (for 2 seconds) show:
+        - **Line 1:** Raw button data (e.g., "Btns:0x1234").
+        - **Line 2:** Processed joystick values (e.g., "LX:100 LY:-50").
+    - After 2 seconds, the display reverts to the normal status lines described above. This is useful for checking controller inputs and dead-zone effects.
 
 ### NeoPixel LED Status
 The onboard NeoPixel LED indicates the system status:
@@ -137,7 +142,7 @@ The onboard NeoPixel LED indicates the system status:
 
 - **LCD Not Displaying or Showing Garbled Text:**
     - **No Display:**
-        - Double-check the I2C wiring: SDA (GPIO 21, defined as `SDA_PIN`) and SCL (GPIO 20, defined as `SCL_PIN`) to the LCD.
+        - Double-check the I2C wiring: SDA (GPIO 8, defined as `SDA_PIN`) and SCL (GPIO 9, defined as `SCL_PIN`) to the LCD.
         - Ensure the LCD has power and ground connected.
         - Verify the I2C address of your LCD module. The code uses `0x27` (defined as `LCD_ADDR`). If your module has a different address, you'll need to change `LCD_ADDR` in the `.ino` file. You can use an I2C scanner sketch to find the address.
     - **Garbled Text:**
