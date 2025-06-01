@@ -40,7 +40,7 @@ Ensure all connections are secure. It's recommended to power the motors from a s
 | Motor A - Direction | GPIO 11      | `MA_DIR_PIN`       | Direction control for Motor A    |
 | Motor B - Speed   | GPIO 12      | `MB_SPEED_PIN`     | PWM signal for Motor B speed     |
 | Motor B - Direction | GPIO 13      | `MB_DIR_PIN`       | Direction control for Motor B    |
-| NeoPixel LED      | GPIO 27      | `NEOPIXEL_PIN`     | Data line for WS2812B LED        |
+| NeoPixel LED      | GPIO 48      | `NEOPIXEL_PIN`     | Data line for WS2812B LED        |
 
 **Note on Motor Driver (HR8833):** The code assumes a motor driver configuration where each motor (A and B) is controlled by one pin for Speed (PWM) and one pin for Direction.
 - For HR8833, this typically means:
@@ -150,7 +150,7 @@ The onboard NeoPixel LED indicates the system status:
     - Check the error messages in the Arduino IDE console for specific details.
 
 - **NeoPixel LED Not Working:**
-    - Verify the `NEOPIXEL_PIN` (GPIO 27) is correctly wired to the NeoPixel's data input (DIN).
+    - Verify the `NEOPIXEL_PIN` (GPIO 48) is correctly wired to the NeoPixel's data input (DIN).
     - Ensure the NeoPixel has 5V power and ground. If using a strip, the power requirement might be higher.
     - The code controls only the first LED (`NEOPIXEL_NUM = 1`).
 

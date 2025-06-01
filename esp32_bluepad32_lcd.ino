@@ -22,7 +22,7 @@
 #define MB_DIR_PIN 13
 
 // Pins for NeoPixel. Only one LED is supported.
-#define NEOPIXEL_PIN 27      // Digital pin connected to the NeoPixel
+#define NEOPIXEL_PIN 48      // Digital pin connected to the NeoPixel
 #define NEOPIXEL_NUM 1       // Number of LEDs in the strip (usually 1 for on-board)
 
 // --- END OF CONFIGURABLE OPTIONS ---
