@@ -150,7 +150,8 @@ LiquidCrystal_I2C lcd(LCD_ADDR, LCD_COLS, LCD_ROWS);
 
 // --- Global Variables for Controller and RC Car State ---
 ControllerPtr myControllers[CONFIG_BLUEPAD32_MAX_DEVICES]; // Array to hold connected controller objects
-static Bluepad32 BP32;                                     // Bluepad32 primary object
+// static Bluepad32 BP32;                                  // Bluepad32 primary object - Removed to resolve conflict
+                                                           // Assuming BP32 is declared globally by the Bluepad32 library itself.
 
 // Speed Mode Definitions
 enum SpeedMode { MODE_LOW, MODE_MEDIUM, MODE_HIGH }; // Enum for different speed levels
