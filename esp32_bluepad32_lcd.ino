@@ -356,13 +356,6 @@ void setup() {
     pinMode(MB_SPEED_PIN, OUTPUT);  // Motor B Speed (PWM)
     pinMode(MB_DIR_PIN, OUTPUT);    // Motor B Direction
 
-    // Explicitly set motor control pins to LOW as a safe default before stopMotors
-    digitalWrite(MA_SPEED_PIN, LOW);
-    digitalWrite(MA_DIR_PIN, LOW);
-    digitalWrite(MB_SPEED_PIN, LOW);
-    digitalWrite(MB_DIR_PIN, LOW);
-    Serial.printf("Motor pins explicitly set LOW before stopMotors().\n"); 
-
     // Ensure motors are stopped at boot
     stopMotors();
     Serial.printf("Motors stopped at boot.\n");
@@ -489,27 +482,22 @@ void loop() {
         const unsigned int DPAD_LEFT_MASK = 0x0010;  // Example, verify actual mask
         const unsigned int DPAD_RIGHT_MASK = 0x0020; // Example, verify actual mask
 
-        // Corrected D-pad turning logic:
-        // Original: D-Pad Left (0x0010) made it turn left (left back, right fwd).
-        // User reports this is perceived as right. So, 0x0010 should execute "physical right turn".
-        // "Physical Right Turn": Left motor forward, Right motor backward.
+        // Reverted D-pad turning logic to user's 'reversed' preference (state from commit feat/dpad-steering-yaxis-throttle)
+        // D-Pad Left (0x0010) -> Left Motor Backward, Right Motor Forward
+        // D-Pad Right (0x0020) -> Left Motor Forward, Right Motor Backward
 
         if ((current_buttons & DPAD_LEFT_MASK)) { // D-Pad Left button pressed
-            // Implement action for "physical right turn"
-            pwmLeft = actualTurnPwm;
-            forwardLeft = true;   // Motor A (Left) forward
-            pwmRight = actualTurnPwm;
-            forwardRight = false; // Motor B (Right) backward
-            isTurning = true;
-            // Serial.printf("D-Pad Left (0x%04X) -> Physical Right Turn\n", DPAD_LEFT_MASK);
-        } else if ((current_buttons & DPAD_RIGHT_MASK)) { // D-Pad Right button pressed
-            // Implement action for "physical left turn"
             pwmLeft = actualTurnPwm;
             forwardLeft = false; // Motor A (Left) backward
             pwmRight = actualTurnPwm;
             forwardRight = true;  // Motor B (Right) forward
             isTurning = true;
-            // Serial.printf("D-Pad Right (0x%04X) -> Physical Left Turn\n", DPAD_RIGHT_MASK);
+        } else if ((current_buttons & DPAD_RIGHT_MASK)) { // D-Pad Right button pressed
+            pwmLeft = actualTurnPwm;
+            forwardLeft = true;   // Motor A (Left) forward
+            pwmRight = actualTurnPwm;
+            forwardRight = false; // Motor B (Right) backward
+            isTurning = true;
         }
 
         if (!isTurning) { // No turn buttons pressed - Forward/Backward Throttle Logic
@@ -550,11 +538,8 @@ void loop() {
         // (stopMotors() in onDisconnectedController also handles this)
         pwmLeft = 0;
         pwmRight = 0;
-        // stopMotors(); // Explicitly stop motors if controller[0] is not connected - REMOVED
-                       // Relying on onDisconnectedController and setup for explicit stop commands.
-                       // Setting pwmLeft/Right to 0 will result in controlMotorA/B(0, dir) if called,
-                       // but controlMotorA/B are not called if controller is not connected.
-                       // The primary purpose of pwmLeft/Right here is for LCD display.
+        stopMotors(); // Explicitly stop motors if controller[0] is not connected - RESTORED
+                       // This ensures motor driver pins are actively set to stop state.
     }
 
     // --- Timed LCD Update ---
