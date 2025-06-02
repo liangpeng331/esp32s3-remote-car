@@ -396,51 +396,53 @@ void setup() {
     Serial.println("Console is disabled. Uncomment UNI_DISABLE_CONSOLE to enable advanced console features.");
 #endif
 
+    Serial.printf("*** DIAGNOSTIC MODE: Peripheral initializations in setup() are temporarily disabled! ***\n");
+
     // initUnusedPins(); // Initialize unused GPIOs - Temporarily disabled for testing
     Serial.printf("initUnusedPins() call is temporarily disabled.\n"); // Diagnostic message
 
     // --- Hardware Initialization ---
-    // I2C and LCD
-    Serial.printf("Initializing I2C on SDA_PIN %d and SCL_PIN %d...\n", SDA_PIN, SCL_PIN);
-    Wire.begin(SDA_PIN, SCL_PIN); // Initialize I2C with specified pins
+    // I2C and LCD - TEMPORARILY DISABLED
+    // Serial.printf("Initializing I2C on SDA_PIN %d and SCL_PIN %d...\n", SDA_PIN, SCL_PIN);
+    // Wire.begin(SDA_PIN, SCL_PIN); // Initialize I2C with specified pins
 
     // Initialize LCD with compatible library
-    int status = lcd.begin(LCD_COLS, LCD_ROWS);
-    if(status) { // Nonzero status means error
-        Serial.printf("LCD initialization failed with status %d\n", status);
-        // Halt if LCD initialization failed
-        while(status) { 
-            delay(1000); 
-        }
-    }
-    lcd.backlight();   // Turn on the backlight
-    lcd.clear();       // Clear any previous content
-    lcd.setCursor(0, 0);
-    lcd.print("RC Car Booting...");
-    lcd.setCursor(0, 1);
-    lcd.print("Scanning BT...");
+    // int status = lcd.begin(LCD_COLS, LCD_ROWS);
+    // if(status) { // Nonzero status means error
+    //     Serial.printf("LCD initialization failed with status %d\n", status);
+    //     // Halt if LCD initialization failed
+    //     while(status) { 
+    //         delay(1000); 
+    //     }
+    // }
+    // lcd.backlight();   // Turn on the backlight
+    // lcd.clear();       // Clear any previous content
+    // lcd.setCursor(0, 0);
+    // lcd.print("RC Car Booting...");
+    // lcd.setCursor(0, 1);
+    // lcd.print("Scanning BT...");
 
-    // NeoPixel LED
-    strip.begin();                  // Initialize NeoPixel strip
-    strip.setPixelColor(0, strip.Color(0, 255, 0)); // Set to Green during boot
-    strip.show();                   // Update the LED
-    strip.setBrightness(50);        // Set brightness (0-255)
+    // NeoPixel LED - TEMPORARILY DISABLED
+    // strip.begin();                  // Initialize NeoPixel strip
+    // strip.setPixelColor(0, strip.Color(0, 255, 0)); // Set to Green during boot
+    // strip.show();                   // Update the LED
+    // strip.setBrightness(50);        // Set brightness (0-255)
 
-    // Motor Control Pins - CRITICAL FIX: Initialize in safe state
-    pinMode(MA_SPEED_PIN, OUTPUT);
-    digitalWrite(MA_SPEED_PIN, LOW);  // Immediately set LOW
-    pinMode(MA_DIR_PIN, OUTPUT);
-    digitalWrite(MA_DIR_PIN, LOW);    // Immediately set LOW
-    pinMode(MB_SPEED_PIN, OUTPUT);
-    digitalWrite(MB_SPEED_PIN, LOW);  // Immediately set LOW
-    pinMode(MB_DIR_PIN, OUTPUT);
-    digitalWrite(MB_DIR_PIN, LOW);    // Immediately set LOW
+    // Motor Control Pins - TEMPORARILY DISABLED
+    // pinMode(MA_SPEED_PIN, OUTPUT);
+    // digitalWrite(MA_SPEED_PIN, LOW);  // Immediately set LOW
+    // pinMode(MA_DIR_PIN, OUTPUT);
+    // digitalWrite(MA_DIR_PIN, LOW);    // Immediately set LOW
+    // pinMode(MB_SPEED_PIN, OUTPUT);
+    // digitalWrite(MB_SPEED_PIN, LOW);  // Immediately set LOW
+    // pinMode(MB_DIR_PIN, OUTPUT);
+    // digitalWrite(MB_DIR_PIN, LOW);    // Immediately set LOW
 
-    Serial.printf("Motor pins explicitly set LOW at boot.\n");
+    // Serial.printf("Motor pins explicitly set LOW at boot.\n");
 
-    // Ensure motors are stopped at boot
-    stopMotors();
-    Serial.printf("Motors stopped at boot.\n");
+    // Ensure motors are stopped at boot - TEMPORARILY DISABLED
+    // stopMotors();
+    // Serial.printf("Motors stopped at boot.\n");
 
     // --- Bluepad32 Initialization - FIXED ---
     // Setup Bluepad32 callbacks for controller connection events
