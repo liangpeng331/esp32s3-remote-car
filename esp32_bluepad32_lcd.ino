@@ -161,12 +161,12 @@ unsigned int prev_buttons_for_mode_switch = 0;       // Previous button state fo
 // Button mask for speed mode switching.
 // BUTTON_Y is typically the 'Y' button on Nintendo-style controllers or Triangle on PlayStation.
 // It should be defined by the Bluepad32 library. If not, a raw hex value (e.g., 0x0008) can be used.
-const unsigned int MODE_SWITCH_BUTTON_MASK = BUTTON_Y;
+const unsigned int MODE_SWITCH_BUTTON_MASK = BUTTON_Y; 
 
 // --- Global Variables for Temporary LCD Input Display ---
 static unsigned int last_buttons_for_lcd_debug = 0;
-static int last_axisX_for_lcd_debug = 0;
-static int last_axisY_for_lcd_debug = 0;
+static int last_axisX_for_lcd_debug = 0; 
+static int last_axisY_for_lcd_debug = 0; 
 static unsigned long lcd_debug_display_start_time = 0;
 const unsigned long LCD_DEBUG_DISPLAY_DURATION = 2000; // Display debug info for 2 seconds
 
@@ -182,14 +182,14 @@ void onConnectedController(ControllerPtr ctl) {
             // You can get more controller properties here if needed:
             // GamepadProperties properties = ctl->getProperties();
             // Serial.printf("Controller model: %s, VID=0x%04x, PID=0x04%x\n", ctl->getModelName().c_str(), properties.vendor_id, properties.product_id);
-
+            
             myControllers[i] = ctl; // Store the controller object
 
             if (i == 0) { // Special handling for the first controller (myControllers[0])
                 // Initialize button state for mode switching to prevent false trigger on first press
                 prev_buttons_for_mode_switch = ctl->buttons();
                 // Initialize LCD debug display variables
-                last_buttons_for_lcd_debug = ctl->buttons();
+                last_buttons_for_lcd_debug = ctl->buttons(); 
                 last_axisX_for_lcd_debug = 0; // Or ctl->axisX() if you want initial value
                 last_axisY_for_lcd_debug = 0; // Or ctl->axisY()
                 lcd_debug_display_start_time = 0; // Ensure debug display is not active on connect
@@ -283,7 +283,7 @@ void processGamepad(ControllerPtr ctl) {
 
         // Set Player LEDs (if the gamepad has them)
         // Example: ctl->setPlayerLEDs(0b0110); // Sets 2nd and 3rd LEDs
-
+        
         // Check for Misc button press (e.g., PS, Xbox, Home button)
         if (ctl->isMiscButtonPressed()) {
             printf("Misc button pressed\n");
@@ -414,12 +414,12 @@ void loop() {
     //     }
     // }
     //  if (myControllers[0] && myControllers[0]->isConnected()) { // Only run diagnostics for controller 0 to reduce spam
-    //     // processGamepad(myControllers[0]);
+    //     // processGamepad(myControllers[0]); 
     //  }
 
 
     // --- RC Car Control Logic (operates on myControllers[0]) ---
-
+    
     // Joystick and Motor Control Constants
     const int JOYSTICK_DEAD_ZONE = 25;  // Ignore small joystick movements (~5% of 511)
     const int JOYSTICK_MAX_VALUE = 511; // Max value from Bluepad32 joystick axis
@@ -441,7 +441,7 @@ void loop() {
             // Briefly display new mode on LCD Line 1 (will be overwritten by timed LCD update)
             char lcd_buffer_mode[LCD_COLS + 1];
             const char* modeNames[] = {"Speed: LOW", "Speed: MEDIUM", "Speed: HIGH"};
-            lcd.setCursor(0, 0);
+            lcd.setCursor(0, 0); 
             int len_mode = snprintf(lcd_buffer_mode, LCD_COLS + 1, "%s", modeNames[currentSpeedMode]);
             lcd.print(lcd_buffer_mode);
             for (int k = len_mode; k < LCD_COLS; k++) lcd.print(" ");
@@ -449,22 +449,22 @@ void loop() {
         prev_buttons_for_mode_switch = current_buttons; // Update previous button state for next iteration
 
         // --- Joystick Input Processing (Y-axis for throttle) ---
-        int stickY_raw = myControllers[0]->axisY();
+        int stickY_raw = myControllers[0]->axisY(); 
         int stickY = (abs(stickY_raw) < JOYSTICK_DEAD_ZONE) ? 0 : stickY_raw;
-
+        
         // For LCD Debug: Read X-axis as well, but it's not used for motor control here
         int stickX_raw = myControllers[0]->axisX();
         int stickX_for_debug = (abs(stickX_raw) < JOYSTICK_DEAD_ZONE) ? 0 : stickX_raw;
 
 
         // --- Logic for Temporary Input Display on LCD ---
-        if (current_buttons != last_buttons_for_lcd_debug ||
+        if (current_buttons != last_buttons_for_lcd_debug || 
             stickX_for_debug != last_axisX_for_lcd_debug || // Use the (dead-zoned) X value for debug trigger
             stickY != last_axisY_for_lcd_debug) {
-
+            
             last_buttons_for_lcd_debug = current_buttons;
-            last_axisX_for_lcd_debug = stickX_for_debug;
-            last_axisY_for_lcd_debug = stickY;
+            last_axisX_for_lcd_debug = stickX_for_debug; 
+            last_axisY_for_lcd_debug = stickY; 
             lcd_debug_display_start_time = millis();
         }
 
@@ -472,7 +472,7 @@ void loop() {
         bool isTurning = false; // Flag to indicate if a turn button is pressed
 
         // Base turning PWM speed, scaled by current speed mode.
-        int baseTurnPwm = 150;
+        int baseTurnPwm = 150; 
         int actualTurnPwm = (int)((float)baseTurnPwm * speedFactors[currentSpeedMode]);
         actualTurnPwm = constrain(actualTurnPwm, 0, 255);
 
@@ -482,28 +482,37 @@ void loop() {
         const unsigned int DPAD_LEFT_MASK = 0x0010;  // Example, verify actual mask
         const unsigned int DPAD_RIGHT_MASK = 0x0020; // Example, verify actual mask
 
-        if ((current_buttons & DPAD_LEFT_MASK)) { // D-Pad Left for Turn Left (pivot)
-            pwmLeft = actualTurnPwm;
-            forwardLeft = false; // Motor A (Left) backward
-            pwmRight = actualTurnPwm;
-            forwardRight = true;  // Motor B (Right) forward
-            isTurning = true;
-        } else if ((current_buttons & DPAD_RIGHT_MASK)) { // D-Pad Right for Turn Right (pivot)
+        // Corrected D-pad turning logic:
+        // Original: D-Pad Left (0x0010) made it turn left (left back, right fwd).
+        // User reports this is perceived as right. So, 0x0010 should execute "physical right turn".
+        // "Physical Right Turn": Left motor forward, Right motor backward.
+
+        if ((current_buttons & DPAD_LEFT_MASK)) { // D-Pad Left button pressed
+            // Implement action for "physical right turn"
             pwmLeft = actualTurnPwm;
             forwardLeft = true;   // Motor A (Left) forward
             pwmRight = actualTurnPwm;
             forwardRight = false; // Motor B (Right) backward
             isTurning = true;
+            // Serial.printf("D-Pad Left (0x%04X) -> Physical Right Turn\n", DPAD_LEFT_MASK);
+        } else if ((current_buttons & DPAD_RIGHT_MASK)) { // D-Pad Right button pressed
+            // Implement action for "physical left turn"
+            pwmLeft = actualTurnPwm;
+            forwardLeft = false; // Motor A (Left) backward
+            pwmRight = actualTurnPwm;
+            forwardRight = true;  // Motor B (Right) forward
+            isTurning = true;
+            // Serial.printf("D-Pad Right (0x%04X) -> Physical Left Turn\n", DPAD_RIGHT_MASK);
         }
 
         if (!isTurning) { // No turn buttons pressed - Forward/Backward Throttle Logic
             // stickY is already dead-zoned
             // Bluepad32 Y-axis: Negative is usually Up (forward), Positive is Down (backward)
-            float normalizedY = (float)stickY / JOYSTICK_MAX_VALUE;
-
-            int speedVal = (int)(abs(normalizedY) * 255);
+            float normalizedY = (float)stickY / JOYSTICK_MAX_VALUE; 
+            
+            int speedVal = (int)(abs(normalizedY) * 255); 
             speedVal = constrain(speedVal, 0, 255);
-
+            
             speedVal = (int)((float)speedVal * speedFactors[currentSpeedMode]);
             speedVal = constrain(speedVal, 0, 255);
 
@@ -519,7 +528,7 @@ void loop() {
             } else { // stickY is 0 (or in dead zone)
                 // pwmLeft and pwmRight are already 0 if speedVal is 0.
                 // Set direction for consistency, though it doesn't matter at speed 0.
-                forwardLeft = true;
+                forwardLeft = true; 
                 forwardRight = true;
             }
         }
@@ -534,8 +543,8 @@ void loop() {
         // (stopMotors() in onDisconnectedController also handles this)
         pwmLeft = 0;
         pwmRight = 0;
-        // stopMotors(); // Redundant if onDisconnectedController is reliable, but ensures safety.
-                       // Let's rely on onDisconnectedController and setup() for explicit stop commands.
+        stopMotors(); // Explicitly stop motors if controller[0] is not connected
+                       // This ensures motor driver pins are actively set to stop state.
     }
 
     // --- Timed LCD Update ---
@@ -561,7 +570,7 @@ void loop() {
             // LX%4d LY%4d was the format from a previous step, using LX:%-4d LY:%-4d (15 chars) for better spacing.
             lcd.print(lcd_buffer);
             for (int i = len; i < LCD_COLS; i++) lcd.print(" "); // Clear rest of the line
-
+            
         } else {
             if (lcd_debug_display_start_time != 0) { // Just finished displaying debug
                  lcd_debug_display_start_time = 0; // Reset flag to prevent re-entering debug display immediately
@@ -576,19 +585,19 @@ void loop() {
                 len = snprintf(lcd_buffer, LCD_COLS + 1, "Not Connected");
             }
             lcd.print(lcd_buffer);
-            for (int i = len; i < LCD_COLS; i++) lcd.print(" ");
+            for (int i = len; i < LCD_COLS; i++) lcd.print(" "); 
 
             lcd.setCursor(0, 1);
             // pwmLeft and pwmRight are static in loop, so they hold their last calculated values.
             int speedPercentA = (int)((float)pwmLeft / 255.0 * 100.0);
             int speedPercentB = (int)((float)pwmRight / 255.0 * 100.0);
             snprintf(lcd_buffer, LCD_COLS + 1, "MA:%3d%% MB:%3d%%", speedPercentA, speedPercentB);
-            lcd.print(lcd_buffer);
+            lcd.print(lcd_buffer); 
         }
     }
-
+    
     // Add a small delay to yield to other tasks (e.g., WiFi, Bluetooth stack)
-    delay(20);
+    delay(20); 
 }
 
 

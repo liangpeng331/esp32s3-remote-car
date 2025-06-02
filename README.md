@@ -97,10 +97,10 @@ Ensure you have the ESP32 board support package installed in your Arduino IDE. I
     - Push Up (negative values, towards -512): Move forward. Speed is proportional to joystick deflection, scaled by the current Speed Mode.
     - Pull Down (positive values, towards 512): Move backward. Speed is proportional to joystick deflection, scaled by the current Speed Mode.
     - Center (or within dead zone): Motors stop.
-- **D-Pad Left (Button mask `0x0010`):** Makes the car pivot turn left.
+- **D-Pad Left (Button mask `0x0010`):** Makes the car pivot turn right (Left motor forward, Right motor backward).
     - Pressing this button overrides forward/backward joystick input for turning.
     - Turning speed is fixed but also scaled by the current Speed Mode.
-- **D-Pad Right (Button mask `0x0020`):** Makes the car pivot turn right.
+- **D-Pad Right (Button mask `0x0020`):** Makes the car pivot turn left (Left motor backward, Right motor forward).
     - Pressing this button overrides forward/backward joystick input for turning.
     - Turning speed is fixed but also scaled by the current Speed Mode.
 - **'Y' Button (North Button on Gamepad - e.g., Triangle on PS controller, typically `BUTTON_Y`):** Cycles through speed modes:
