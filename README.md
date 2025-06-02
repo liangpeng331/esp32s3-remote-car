@@ -60,9 +60,9 @@ Ensure you have the ESP32 board support package installed in your Arduino IDE. I
 - **Bluepad32:** For Bluetooth game controller support.
     - Author: Ricardo Quesada
     - Installation: Search for "Bluepad32" in the Arduino IDE Library Manager and install. Ensure you have the ESP32 board definitions installed.
-- **LiquidCrystal_I2C:** For controlling the I2C LCD1602 display.
-    - Author: Frank de Brabander (or a compatible version by another author, e.g., Marco Schwartz)
-    - Installation: Search for "LiquidCrystal_I2C" in the Library Manager and install.
+- **hd44780:** For controlling I2C LCDs, more compatible with ESP32 than some older libraries.
+    - Author: Bill Perry
+    - Installation: Search for "hd44780" in the Arduino IDE Library Manager and install. This library includes support for various I/O interfaces, including I2C expanders via `hd44780ioClass/hd44780_I2Cexp.h`.
 - **Adafruit NeoPixel:** For controlling the WS2812B NeoPixel LED.
     - Author: Adafruit
     - Installation: Search for "Adafruit NeoPixel" in the Library Manager and install.
@@ -97,10 +97,10 @@ Ensure you have the ESP32 board support package installed in your Arduino IDE. I
     - Push Up (negative values, towards -512): Move forward. Speed is proportional to joystick deflection, scaled by the current Speed Mode.
     - Pull Down (positive values, towards 512): Move backward. Speed is proportional to joystick deflection, scaled by the current Speed Mode.
     - Center (or within dead zone): Motors stop.
-- **D-Pad Left (Button mask `0x0010`):** Makes the car pivot turn left.
+- **D-Pad Left (Button mask `0x0010`):** Makes the car pivot turn right (Left motor forward, Right motor backward).
     - Pressing this button overrides forward/backward joystick input for turning.
     - Turning speed is fixed but also scaled by the current Speed Mode.
-- **D-Pad Right (Button mask `0x0020`):** Makes the car pivot turn right.
+- **D-Pad Right (Button mask `0x0020`):** Makes the car pivot turn left (Left motor backward, Right motor forward).
     - Pressing this button overrides forward/backward joystick input for turning.
     - Turning speed is fixed but also scaled by the current Speed Mode.
 - **'Y' Button (North Button on Gamepad - e.g., Triangle on PS controller, typically `BUTTON_Y`):** Cycles through speed modes:
