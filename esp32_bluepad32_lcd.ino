@@ -356,6 +356,13 @@ void setup() {
     pinMode(MB_SPEED_PIN, OUTPUT);  // Motor B Speed (PWM)
     pinMode(MB_DIR_PIN, OUTPUT);    // Motor B Direction
 
+    // Explicitly set motor control pins to LOW as a safe default before stopMotors
+    digitalWrite(MA_SPEED_PIN, LOW);
+    digitalWrite(MA_DIR_PIN, LOW);
+    digitalWrite(MB_SPEED_PIN, LOW);
+    digitalWrite(MB_DIR_PIN, LOW);
+    Serial.printf("Motor pins explicitly set LOW before stopMotors().\n"); 
+
     // Ensure motors are stopped at boot
     stopMotors();
     Serial.printf("Motors stopped at boot.\n");
@@ -543,8 +550,11 @@ void loop() {
         // (stopMotors() in onDisconnectedController also handles this)
         pwmLeft = 0;
         pwmRight = 0;
-        stopMotors(); // Explicitly stop motors if controller[0] is not connected
-                       // This ensures motor driver pins are actively set to stop state.
+        // stopMotors(); // Explicitly stop motors if controller[0] is not connected - REMOVED
+                       // Relying on onDisconnectedController and setup for explicit stop commands.
+                       // Setting pwmLeft/Right to 0 will result in controlMotorA/B(0, dir) if called,
+                       // but controlMotorA/B are not called if controller is not connected.
+                       // The primary purpose of pwmLeft/Right here is for LCD display.
     }
 
     // --- Timed LCD Update ---
