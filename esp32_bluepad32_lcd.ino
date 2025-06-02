@@ -396,7 +396,8 @@ void setup() {
     Serial.println("Console is disabled. Uncomment UNI_DISABLE_CONSOLE to enable advanced console features.");
 #endif
 
-    initUnusedPins(); // Initialize unused GPIOs
+    // initUnusedPins(); // Initialize unused GPIOs - Temporarily disabled for testing
+    Serial.printf("initUnusedPins() call is temporarily disabled.\n"); // Diagnostic message
 
     // --- Hardware Initialization ---
     // I2C and LCD
